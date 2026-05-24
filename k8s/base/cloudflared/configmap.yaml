@@ -7,9 +7,9 @@ metadata:
     app: cloudflared
 data:
   config.yaml: |
-    # Tunnel UUID is supplied at startup via $TUNNEL_ID (see deployment.yaml).
-    # Credentials JSON is mounted from the cloudflared-credentials Secret.
-    credentials-file: /etc/cloudflared/creds/credentials.json
+    # Tunnel UUID and credentials path are supplied via CLI flags in the
+    # Deployment (--credentials-file points at the mounted Secret). This
+    # file only carries the runtime knobs and ingress rules.
     no-autoupdate: true
     metrics: 0.0.0.0:2000
 

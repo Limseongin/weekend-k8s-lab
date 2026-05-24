@@ -17,23 +17,18 @@ spec:
     spec:
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2024.12.2
-          # `args:` doesn't expand env vars, so we use sh -c to inject
-          # $TUNNEL_ID (sourced from the cloudflared-credentials Secret).
-          command:
-            - sh
-            - -ceu
-            - |
-              exec cloudflared tunnel \
-                --config /etc/cloudflared/config/config.yaml \
-                --no-autoupdate \
-                run "$TUNNEL_ID"
-          env:
-            - name: TUNNEL_ID
-              valueFrom:
-                secretKeyRef:
-                  name: cloudflared-credentials
-                  key: TUNNEL_ID
+          image: cloudflare/cloudflared:2026.5.0
+          # The cloudflared image is distroless (no shell), so we invoke
+          # the binary directly. Tunnel UUID is derived from the mounted
+          # credentials.json via --credentials-file, so no env var is
+          # needed and `run` takes no positional argument.
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config/config.yaml
+            - --credentials-file
+            - /etc/cloudflared/creds/credentials.json
+            - run
           ports:
             - name: metrics
               containerPort: 2000

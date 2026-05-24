@@ -19,9 +19,10 @@ spec:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.5.0
           # The cloudflared image is distroless (no shell), so we invoke
-          # the binary directly. Tunnel UUID is derived from the mounted
-          # credentials.json via --credentials-file, so no env var is
-          # needed and `run` takes no positional argument.
+          # the binary directly. `tunnel run` requires the UUID as a
+          # positional argument — we inject it via Kubernetes' native
+          # $(VAR_NAME) substitution in args (NOT a shell expansion;
+          # kubelet resolves it before exec, so no /bin/sh is needed).
           args:
             - tunnel
             - --config
@@ -29,6 +30,13 @@ spec:
             - --credentials-file
             - /etc/cloudflared/creds/credentials.json
             - run
+            - $(TUNNEL_ID)
+          env:
+            - name: TUNNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-credentials
+                  key: TUNNEL_ID
           ports:
             - name: metrics
               containerPort: 2000

@@ -1,18 +1,18 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: postgres-pv
+  name: mongo-pv
   labels:
-    app: postgres
+    app: mongo
 spec:
   capacity:
     storage: 2Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: postgres-storage
+  storageClassName: mongo-storage
   hostPath:
-    path: /srv/k8s-lab/postgres
+    path: /srv/k8s-lab/mongo
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -21,8 +21,6 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                # registry is on worker-node1; both DBs (postgres + mongo)
-                # share worker-node2 with explicit memory caps — see
-                # `k8s/base/mongo/statefulset.yaml` for the WiredTiger cache
-                # cap that keeps mongo within its 768Mi limit on a 4GB node.
+                # Co-located with postgres on worker-node2; safety relies on
+                # the WiredTiger cache cap in statefulset.yaml.
                 - worker-node2

@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - registry/
   - postgres/
+  - mongo/
   - backend/
   # cloudflared/ is committed but intentionally not included here yet:
   # its secrets.yaml is gitignored and only materialised when #2

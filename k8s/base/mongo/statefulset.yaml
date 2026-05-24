@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: weekend-k8s-lab
+  labels:
+    app: mongo
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker-node2
+      containers:
+        - name: mongo
+          image: mongo:7.0
+          # Cap WiredTiger cache at 400Mi. Mongo's default sizing reads the
+          # *host* RAM (4Gi on these VMs), not the cgroup limit, and would
+          # otherwise reserve ~1.5Gi — instant OOMKill against the 768Mi
+          # container limit. The official entrypoint still auto-applies
+          # --auth when MONGO_INITDB_ROOT_USERNAME is set.
+          args:
+            - --wiredTigerCacheSizeGB=0.4
+          ports:
+            - containerPort: 27017
+              name: mongo
+          envFrom:
+            - secretRef:
+                name: mongo-credentials
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  mongosh --quiet --eval "db.adminCommand({ping:1}).ok"
+                  -u "$MONGO_INITDB_ROOT_USERNAME"
+                  -p "$MONGO_INITDB_ROOT_PASSWORD"
+                  --authenticationDatabase admin
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  mongosh --quiet --eval "db.adminCommand({ping:1}).ok"
+                  -u "$MONGO_INITDB_ROOT_USERNAME"
+                  -p "$MONGO_INITDB_ROOT_PASSWORD"
+                  --authenticationDatabase admin
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: mongo-storage
+        resources:
+          requests:
+            storage: 2Gi

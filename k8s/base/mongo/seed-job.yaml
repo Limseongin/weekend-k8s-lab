@@ -1,27 +1,28 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: backend
+  name: mongo-seed
   namespace: weekend-k8s-lab
   labels:
-    app: backend
+    app: mongo
+    component: seed
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: backend
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600
   template:
     metadata:
       labels:
-        app: backend
+        app: mongo
+        component: seed
     spec:
+      restartPolicy: OnFailure
       containers:
-        - name: backend
+        - name: seed
+          # Reuses the backend image so the seed has both psycopg (to read
+          # product ids from postgres) and pymongo (to populate mongo).
           image: 192.168.56.105:30500/backend:v2
           imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8000
-              name: http
+          command: ["python", "-m", "app.seed_mongo"]
           env:
             - name: PGHOST
               value: postgres
@@ -51,20 +52,8 @@ spec:
                 name: postgres-credentials
           resources:
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8000
-            initialDelaySeconds: 0
-            periodSeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8000
-            initialDelaySeconds: 30
-            periodSeconds: 20

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fetchProducts } from "../api";
+import { CameraIcon } from "../components/CameraIcon";
 import type { Product } from "../types";
 
 export function Catalog() {
@@ -16,13 +17,20 @@ export function Catalog() {
 
   return (
     <div className="catalog">
-      <h1>Cameras ({products.length})</h1>
+      <div className="catalog-header">
+        <h1>All Cameras</h1>
+        <span className="count">{products.length} products</span>
+      </div>
       <div className="grid">
         {products.map((p) => (
           <Link key={p.id} to={`/products/${p.id}`} className="card">
-            <img src={p.thumbnail} alt={p.name} loading="lazy" />
-            <h2>{p.name}</h2>
-            <p className="price">${(p.price_cents / 100).toFixed(2)}</p>
+            <div className="product-thumb">
+              <CameraIcon />
+            </div>
+            <div className="card-body">
+              <h2>{p.name}</h2>
+              <p className="price">${(p.price_cents / 100).toFixed(2)}</p>
+            </div>
           </Link>
         ))}
       </div>

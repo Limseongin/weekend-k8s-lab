@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { fetchProduct } from "../api";
+import { CameraIcon } from "../components/CameraIcon";
 import type { ProductDetail } from "../types";
 
 export function ProductDetailPage() {
@@ -22,10 +23,16 @@ export function ProductDetailPage() {
 
   return (
     <div className="detail">
-      <Link to="/" className="back">← Back to catalog</Link>
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Cameras</Link>
+        <span className="sep">/</span>
+        <span aria-current="page">{product.name}</span>
+      </nav>
       <div className="detail-main">
-        <img src={product.thumbnail} alt={product.name} />
-        <div>
+        <div className="detail-thumb">
+          <CameraIcon />
+        </div>
+        <div className="detail-info">
           <h1>{product.name}</h1>
           <p className="price">${(product.price_cents / 100).toFixed(2)}</p>
           <p className="description">
@@ -58,7 +65,8 @@ export function ProductDetailPage() {
           <ul>
             {product.reviews.map((r, i) => (
               <li key={i}>
-                <strong>{r.author}</strong> <span aria-label={`${r.rating} stars`}>★{r.rating}</span>
+                <strong>{r.author}</strong>{" "}
+                <span className="rating" aria-label={`${r.rating} stars`}>★ {r.rating}</span>
                 <p>{r.body}</p>
               </li>
             ))}

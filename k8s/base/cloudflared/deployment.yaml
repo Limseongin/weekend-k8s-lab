@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: weekend-k8s-lab
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2024.12.2
+          # `args:` doesn't expand env vars, so we use sh -c to inject
+          # $TUNNEL_ID (sourced from the cloudflared-credentials Secret).
+          command:
+            - sh
+            - -ceu
+            - |
+              exec cloudflared tunnel \
+                --config /etc/cloudflared/config/config.yaml \
+                --no-autoupdate \
+                run "$TUNNEL_ID"
+          env:
+            - name: TUNNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-credentials
+                  key: TUNNEL_ID
+          ports:
+            - name: metrics
+              containerPort: 2000
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config
+        - name: creds
+          secret:
+            secretName: cloudflared-credentials
+            items:
+              - key: credentials.json
+                path: credentials.json

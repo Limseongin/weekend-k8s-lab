@@ -14,16 +14,18 @@ data:
     metrics: 0.0.0.0:2000
 
     ingress:
-      # #4: /api/* → FastAPI backend.
+      # #4: /api/* → FastAPI backend. Must precede the catch-all since
+      # cloudflared matches rules top-down.
       - hostname: k8sproject.limseongin.com
         path: ^/api/
         service: http://backend.weekend-k8s-lab.svc.cluster.local:80
 
-      # #2: default host route → nginx placeholder. Until #2 lands and
-      # creates the nginx-placeholder Service, this route will 502 — /api/*
-      # is unaffected because it matches the earlier rule.
+      # #6: everything else → React SPA on nginx. Frontend's nginx.conf
+      # falls back to /index.html for client-side routes, so deep links
+      # (/products/:id) and page refreshes work. #2's original nginx
+      # placeholder is no longer needed — frontend serves / directly.
       - hostname: k8sproject.limseongin.com
-        service: http://nginx-placeholder.weekend-k8s-lab.svc.cluster.local:80
+        service: http://frontend.weekend-k8s-lab.svc.cluster.local:80
 
       # Cloudflared requires a catch-all default.
       - service: http_status:404

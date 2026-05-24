@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-seed
+  namespace: weekend-k8s-lab
+  labels:
+    app: postgres
+    component: seed
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: seed
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: postgres:16-alpine
+          env:
+            - name: PGHOST
+              value: postgres
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+          command:
+            - sh
+            - -ceu
+            - |
+              # Wait for the StatefulSet pod to accept connections. The
+              # headless service may resolve before initdb completes on a
+              # fresh PV, so we retry with a hard cap.
+              for i in $(seq 1 60); do
+                if pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" >/dev/null 2>&1; then
+                  break
+                fi
+                echo "waiting for postgres ($i/60)..."
+                sleep 2
+              done
+
+              psql -v ON_ERROR_STOP=1 -f /sql/schema.sql
+              psql -v ON_ERROR_STOP=1 -f /sql/seed.sql
+
+              count=$(psql -At -c 'SELECT count(*) FROM products;')
+              echo "products row count: $count"
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: sql
+          configMap:
+            name: postgres-schema

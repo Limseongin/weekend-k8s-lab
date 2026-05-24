@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# secrets.yaml is gitignored and must be created from secrets.example.yaml
+# before `kubectl apply -k` will succeed.
+resources:
+  - secrets.yaml
+  - configmap.yaml
+  - deployment.yaml

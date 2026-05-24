@@ -5,3 +5,7 @@ resources:
   - namespace.yaml
   - registry/
   - postgres/
+  - backend/
+  # cloudflared/ is committed but intentionally not included here yet:
+  # its secrets.yaml is gitignored and only materialised when #2
+  # (Cloudflare Tunnel) lands. Add this line back when #2 closes.
